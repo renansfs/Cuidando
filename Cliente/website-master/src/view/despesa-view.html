@@ -1,0 +1,155 @@
+<despesa-view class="">
+    <div class="container-fluid light-dark-bg">
+        <div class="row">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-12 padded-col">
+                        <a class="back-to-year"
+                        onclick={fRoute('ano')}>
+                            <span class="left-arrow"/>
+                            { t('back to year') }
+                        </a>
+                    </div>
+                </div>
+                <div class="row relative">
+                    <div id="minimap-container" class="col-md-4">
+                        <div if="{ !this.pointinfo.geometry }"
+                             class="not-mapped-msg-container">
+                            <div class="not-mapped-msg">
+                                { t('Not mapped') }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <h2>{ t('Expense') }: { this.pointinfo.ds_projeto_atividade }</h2>
+                                <spinner class="dark-spinner" if="{ !this.pointinfo }" scale="0.25"/>
+                            </div>
+                        </div>
+
+                        <div if="{ this.pointinfo }" class="row">
+                            <div each="{ cat, i in categories }" class="col-sm-4 category">
+                                <div class="subtitle">{ t(cat) }</div>
+                                <raw class="moedas { cat }"
+                                     content="{ parent.assets.moedas }"/>
+                                <div class="value">R$ { formatCur(this[cat]) }</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div if="{ this.pointinfo }" class="row text-right" if="{ updateTime }">
+                    <div class="col-sm-12 padded-col">
+                        { t('data updated at') }: { updateTime }
+                    </div>
+                </div>
+
+                <div if="{ this.pointinfo }" class="top-bar orgao-box">
+                    <span class="block-decorator"/>
+                    <span class="key">{ t('Accountable body') }:</span>
+                    <span class="value">{this.orgao}</span>
+                </div>
+
+                <ul if="{ this.pointinfo }" class="list-bare top-bar bottom-bar despesa-details-list">
+                    <li each={el, i in mainKeys}>
+                        <span class="key">{el[0]}:</span>
+                        <span>{el[1]}</span>
+                    </li>
+                    <a if="{ !showAllInfo }"
+                       class="small-font"
+                        onclick="{ doShowAll }">
+                        mais
+                    </a>
+                </ul>
+
+                <ul if="{ showAllInfo && this.pointinfo }"
+                    class="list-bare bottom-bar despesa-details-list">
+                    <li each={key, i in keys}>
+                        <span class="key">{key}:</span>
+                        <span>{this.pointinfo[key]}</span>
+                    </li>
+                    <a if="{ showAllInfo }"
+                       class="small-font"
+                        onclick="{ donotShowAll }">
+                        esconder
+                    </a>
+                </ul>
+
+            </div>
+        </div>
+    </div>
+
+    <perg-com-tabs/>
+
+
+    <script>
+    import {formatCur} from '../utils/helpers'
+    import map from '../component/map/map.js'
+    this.formatCur = formatCur
+    this.mixin('base')
+    // this.code = opts.code
+    this.code = this.router.getParam('code')
+    this.showAllInfo = false
+    this.doShowAll = () => this.showAllInfo = true
+    this.donotShowAll = () => this.showAllInfo = false
+
+    this.categories = ['planejado', 'empenhado', 'liquidado']
+    this.mainKeysNames = [
+        ['ds_despesa', 'Despesa'],
+        ['ds_fonte', 'Fonte'],
+        ['ds_funcao', 'Função'],
+    ]
+
+    this.getUpdateTime = () => {
+        if (this.pointinfo) {
+            if (this.pointinfo.datafinal)
+                return this.pointinfo.datafinal
+            if (this.pointinfo['cd_anoexecucao'])
+                return this.pointinfo['cd_anoexecucao']
+            if (this.pointinfo['cd_exercicio'])
+                return this.pointinfo['cd_exercicio']
+        }
+        return undefined
+    }
+
+    // reset pointinfo so loading spinner appears
+    this.watches('code', () => this.pointinfo = null)
+
+    this.watchDepends('pointinfo', 'code', () => {
+        if (this.pointinfo) {
+            this.mainKeys = []
+            for (let name of this.mainKeysNames) {
+                let value = this.pointinfo[name[0]]
+                if (value) this.mainKeys.push([name[1], value])
+            }
+
+            this.keys = Object.keys(this.pointinfo)
+
+            this.planejado = this.pointinfo.sld_orcado_ano
+            if (this.pointinfo.vl_atualizado)
+                this.planejado = this.pointinfo.vl_atualizado
+            this.empenhado = this.pointinfo.vl_empenhadoliquido
+            this.liquidado = this.pointinfo.vl_liquidado
+            this.orgao = this.pointinfo.ds_orgao
+            this.updateTime = this.getUpdateTime()
+            if (this.pointinfo.geometry) {
+                let [lng, lat] = this.pointinfo.geometry.coordinates
+                map.setCenter([lat, lng])
+            }
+            this.update()
+        }
+    })
+
+    this.preunmount = () => {
+        document.getElementById('bigmap-container')
+            .appendChild(document.getElementById('map-parent-container'))
+    }
+
+    this.one('mount', () => {
+        document.getElementById('minimap-container')
+            .appendChild(document.getElementById('map-parent-container'))
+    })
+    </script>
+</despesa-view>

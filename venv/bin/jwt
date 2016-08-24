@@ -1,0 +1,10 @@
+#!/home/renan/Documents/Cuidando/venv/bin/python
+# EASY-INSTALL-ENTRY-SCRIPT: 'PyJWT','console_scripts','jwt'
+__requires__ = 'PyJWT'
+import sys
+from pkg_resources import load_entry_point
+
+if __name__ == '__main__':
+    sys.exit(
+        load_entry_point('PyJWT', 'console_scripts', 'jwt')()
+    )
